@@ -18,6 +18,16 @@
     font-size: 0.95rem;
 }
 
+.auth-error {
+    background: rgba(255, 71, 87, 0.1);
+    color: var(--danger);
+    padding: 0.8rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
 .auth-form {
     display: flex;
     flex-direction: column;

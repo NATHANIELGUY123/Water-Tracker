@@ -1,21 +1,31 @@
 import { useState } from 'react';
 import './Auth.css';
+import { registerUser, loginUser } from '../services/db';
 
 export default function Auth({ onLogin }) {
     const [isLogin, setIsLogin] = useState(true);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!username || !password) return;
+        setError('');
 
-        // Mock user login and generate a dummy ID for signup
-        const user = {
-            id: isLogin ? 'USR-891' : `USR-${Math.floor(Math.random() * 1000)}`,
-            username,
-        };
-        onLogin(user);
+        try {
+            if (isLogin) {
+                const user = loginUser(username, password);
+                onLogin(user);
+            } else {
+                if (username.length < 3) throw new Error("Username must be at least 3 characters");
+                if (password.length < 4) throw new Error("Password must be at least 4 characters");
+
+                const newUser = registerUser(username, password);
+                onLogin(newUser);
+            }
+        } catch (err) {
+            setError(err.message);
+        }
     };
 
     return (
@@ -24,6 +34,7 @@ export default function Auth({ onLogin }) {
             <p className="auth-subtitle">
                 {isLogin ? 'Log in to sync your smart tumbler.' : 'Join to start tracking your hydration.'}
             </p>
+            {error && <div className="auth-error">{error}</div>}
 
             <form onSubmit={handleSubmit} className="auth-form">
                 <div className="input-group">

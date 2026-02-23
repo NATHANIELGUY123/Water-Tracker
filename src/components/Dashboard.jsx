@@ -1,14 +1,34 @@
 import { useState, useEffect } from 'react';
 import HistoryGraph from './HistoryGraph';
 import './Dashboard.css';
+import { logDrink, getUserHistory } from '../services/db';
 
 export default function Dashboard({ user, dailyGoal, onLogout }) {
-    // Tumbler holds up to 800ml for example
-    const TUMBLER_CAPACITY = 800;
+    // Tumbler holds up to 1000ml for example
+    const TUMBLER_CAPACITY = 1000;
 
     const [tumblerAmount, setTumblerAmount] = useState(TUMBLER_CAPACITY);
+
+    // Calculate consumed today from actual DB history
+    const [history, setHistory] = useState([]);
     const [consumedToday, setConsumedToday] = useState(0);
     const [activeTab, setActiveTab] = useState('today');
+
+    // On mount, load history
+    useEffect(() => {
+        const userHist = getUserHistory(user.id);
+        setHistory(userHist);
+
+        // Calculate today's total
+        const todayStr = new Date().toLocaleDateString('en-US');
+        const todayDrinks = userHist.filter(log => {
+            const logDate = new Date(log.timestamp).toLocaleDateString('en-US');
+            return logDate === todayStr;
+        });
+
+        const total = todayDrinks.reduce((sum, log) => sum + log.amount, 0);
+        setConsumedToday(total);
+    }, [user.id]);
 
     // Web Notification setup
     useEffect(() => {
@@ -26,11 +46,44 @@ export default function Dashboard({ user, dailyGoal, onLogout }) {
         setTumblerAmount(prev => prev - actualDrink);
         setConsumedToday(prev => prev + actualDrink);
 
+        // Log to database
+        logDrink(user.id, actualDrink);
+        // Refresh local history state
+        setHistory(getUserHistory(user.id));
+
         // In a real app we'd reset the inactivity timer here
     };
 
     const handleRefill = () => {
         setTumblerAmount(TUMBLER_CAPACITY);
+    };
+
+    // NFC Functionality
+    const [nfcMessage, setNfcMessage] = useState('');
+    const startNfcScan = async () => {
+        if (!('NDEFReader' in window)) {
+            setNfcMessage("Web NFC is not supported on this device/browser.");
+            return;
+        }
+
+        try {
+            setNfcMessage("Ready to scan... Hold your device near the smart tumbler tag.");
+            const ndef = new window.NDEFReader();
+            await ndef.scan();
+
+            ndef.addEventListener("readingerror", () => {
+                setNfcMessage("Error reading NFC tag. Try again.");
+            });
+
+            ndef.addEventListener("reading", () => {
+                setNfcMessage("Tag detected! Logging a 300ml drink...");
+                // Automatically log a 300ml drink when tapped
+                handleDrink(300);
+                setTimeout(() => setNfcMessage("Drink logged successfully!"), 2000);
+            });
+        } catch (error) {
+            setNfcMessage("Error starting NFC scan: " + error.message);
+        }
     };
 
     const tumblerFillPercentage = (tumblerAmount / TUMBLER_CAPACITY) * 100;
@@ -52,6 +105,12 @@ export default function Dashboard({ user, dailyGoal, onLogout }) {
                     onClick={() => setActiveTab('today')}
                 >
                     Today
+                </button>
+                <button
+                    className={`toggle-btn ${activeTab === 'nfc' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('nfc')}
+                >
+                    NFC
                 </button>
                 <button
                     className={`toggle-btn ${activeTab === 'history' ? 'active' : ''}`}
@@ -116,8 +175,40 @@ export default function Dashboard({ user, dailyGoal, onLogout }) {
                         </div>
                     </div>
                 </>
+            ) : activeTab === 'nfc' ? (
+                <div className="nfc-section glass-panel fade-in">
+                    <h3 className="section-title">NFC Tag Scanner</h3>
+                    <p className="tumbler-subtitle">Tap your smart tumbler to instantly log a drink.</p>
+
+                    <div className="nfc-status">
+                        <div className="nfc-link-generator">
+                            <label className="tumbler-subtitle">Program this URL to your NFC Tag (Logs 300ml):</label>
+                            <div className="link-copy-row">
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={`${window.location.origin}/?nfcLog=300&userId=${user.id}`}
+                                    className="nfc-link-input"
+                                />
+                                <button className="copy-btn" onClick={() => {
+                                    navigator.clipboard.writeText(`${window.location.origin}/?nfcLog=300&userId=${user.id}`);
+                                    setNfcMessage("Link copied! You can now paste this anywhere.");
+                                }}>
+                                    Copy Link
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="nfc-divider">- OR DIRECT SCAN -</div>
+
+                        <button className="auth-btn nfc-scan-btn" onClick={startNfcScan}>
+                            📱 Scan NFC Tag Directly
+                        </button>
+                        <p className="nfc-message" style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>{nfcMessage}</p>
+                    </div>
+                </div>
             ) : (
-                <HistoryGraph dailyGoal={dailyGoal} />
+                <HistoryGraph dailyGoal={dailyGoal} historyData={history} />
             )}
         </div>
     );

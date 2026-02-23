@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Auth from './components/Auth'
 import Onboarding from './components/Onboarding'
 import Dashboard from './components/Dashboard'
+import { logDrink, setUserGoal } from './services/db'
 import './App.css'
 
 function App() {
@@ -9,6 +10,24 @@ function App() {
   const [dailyGoal, setDailyGoal] = useState(null);
   const [lastDrinkTime, setLastDrinkTime] = useState(Date.now());
   const timerRef = useRef(null);
+
+  // NFC Link Interception
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const nfcLog = params.get('nfcLog');
+    const userId = params.get('userId');
+
+    if (nfcLog && userId) {
+      try {
+        logDrink(userId, parseInt(nfcLog, 10));
+        alert(`Successfully logged ${nfcLog}ml via NFC Link!`);
+      } catch (e) {
+        console.error("Error logging from NFC link:", e);
+      }
+      // Clean up URL so it doesn't re-trigger on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // Inactivity Notification Logic (e.g. 5 seconds for testing, realistically 2 hours)
   const NOTIFICATION_INTERVAL = 30000; // 30 seconds for quick testing
@@ -44,10 +63,15 @@ function App() {
 
   const handleLogin = (userData) => {
     setUser(userData);
+    if (userData.dailyGoal) {
+      setDailyGoal(userData.dailyGoal);
+      setLastDrinkTime(Date.now());
+    }
   };
 
   const handleOnboardingComplete = (data) => {
     setDailyGoal(data.dailyGoal);
+    setUserGoal(user.id, data.dailyGoal);
     setLastDrinkTime(Date.now()); // Start tracking when they finish setup
   };
 

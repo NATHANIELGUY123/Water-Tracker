@@ -10,58 +10,37 @@ import {
 } from 'recharts';
 import './HistoryGraph.css';
 
-export default function HistoryGraph({ dailyGoal }) {
-    // Generate mock data for the past 7 days
+export default function HistoryGraph({ dailyGoal, historyData }) {
+    // Process real history data for the past 7 days
     const today = new Date();
-    const mockData = Array.from({ length: 7 }).map((_, i) => {
+    const chartData = Array.from({ length: 7 }).map((_, i) => {
         const d = new Date();
         d.setDate(today.getDate() - (6 - i));
         const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+        const dateString = d.toLocaleDateString('en-US');
 
-        // Create random consumption values around the goal
-        // Make today's value lower so it looks "in progress"
-        const variance = (Math.random() * 800) - 400;
-        let amount = i === 6 ? 0 : Math.max(0, dailyGoal + variance);
+        // Filter historyData for this specific date
+        const dayLogs = (historyData || []).filter(log => {
+            const logDate = new Date(log.timestamp).toLocaleDateString('en-US');
+            return logDate === dateString;
+        });
 
-        // Generate a few realistic mock "drinks" throughout the day to hit the total amount
-        const logs = [];
-        let remainingAmount = amount;
+        // Calculate total consumed
+        const totalConsumed = dayLogs.reduce((sum, log) => sum + log.amount, 0);
 
-        // If we drank water, split it into 3-6 random sips across the day
-        if (amount > 0) {
-            const numDrinks = Math.floor(Math.random() * 4) + 3; // 3 to 6 drinks
-
-            for (let j = 0; j < numDrinks; j++) {
-                // Last drink takes the rest, others take a random fraction
-                let sipAmount = j === numDrinks - 1
-                    ? remainingAmount
-                    : Math.floor((remainingAmount / (numDrinks - j)) * (0.8 + Math.random() * 0.4));
-
-                if (sipAmount > 0) {
-                    // Generate a random time between 8 AM and 10 PM
-                    const hour = 8 + Math.floor(Math.random() * 14);
-                    const minute = Math.floor(Math.random() * 60);
-                    const MathSign = Math.floor(Math.random() * 60)
-                    const sipTime = new Date(d);
-                    sipTime.setHours(hour, minute);
-
-                    logs.push({
-                        time: sipTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        dateObj: sipTime, // keeping object for sorting
-                        amount: Math.round(sipAmount)
-                    });
-                    remainingAmount -= sipAmount;
-                }
-            }
-
-            // Sort logs chronologically
-            logs.sort((a, b) => a.dateObj - b.dateObj);
-        }
+        // Format logs for tooltip
+        const formattedLogs = dayLogs.map(log => {
+            const timeStr = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return {
+                time: timeStr,
+                amount: log.amount
+            };
+        });
 
         return {
             day: dayName,
-            consumed: Math.round(amount),
-            logs: logs
+            consumed: totalConsumed,
+            logs: formattedLogs
         };
     });
 
@@ -110,7 +89,7 @@ export default function HistoryGraph({ dailyGoal }) {
             <div className="chart-wrapper">
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart
-                        data={mockData}
+                        data={chartData}
                         margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
                     >
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
