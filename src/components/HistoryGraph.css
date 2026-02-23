@@ -1,0 +1,111 @@
+.history-graph-container {
+    padding: 1.5rem 2rem;
+    text-align: left;
+    margin-top: 1rem;
+}
+
+.graph-header {
+    margin-bottom: 2rem;
+}
+
+.graph-subtitle {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.chart-wrapper {
+    width: 100%;
+}
+
+.custom-tooltip {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    min-width: 150px;
+}
+
+.custom-tooltip .label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.4rem;
+}
+
+.tooltip-header {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+}
+
+.tooltip-header strong {
+    color: var(--text);
+    font-size: 1.1rem;
+}
+
+.custom-tooltip .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+}
+
+.drink-logs-list {
+    margin-bottom: 0.8rem;
+    font-size: 0.85rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.6rem;
+    border-radius: var(--radius-sm);
+    min-width: 130px;
+}
+
+.logs-title {
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.drink-logs-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.drink-logs-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text);
+}
+
+.log-time {
+    color: var(--text-muted);
+}
+
+.log-amount {
+    color: var(--secondary);
+    font-weight: 500;
+}
+
+.goal-status {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.goal-status.met {
+    color: var(--success);
+}
+
+.goal-status.missed {
+    color: var(--danger);
+}
