@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import HistoryGraph from './HistoryGraph';
 import './Dashboard.css';
-import { logDrink, getUserHistory } from '../services/db';
+import { logDrink, getUserHistory, setTumblerVolume } from '../services/db';
 
 export default function Dashboard({ user, dailyGoal, onLogout }) {
     // Tumbler holds up to 1000ml for example
     const TUMBLER_CAPACITY = 1000;
 
-    const [tumblerAmount, setTumblerAmount] = useState(TUMBLER_CAPACITY);
+    const [tumblerAmount, setTumblerAmount] = useState(user.tumblerVolume !== undefined ? user.tumblerVolume : TUMBLER_CAPACITY);
 
     // Calculate consumed today from actual DB history
     const [history, setHistory] = useState([]);
@@ -43,8 +43,12 @@ export default function Dashboard({ user, dailyGoal, onLogout }) {
         const actualDrink = Math.min(amount, tumblerAmount);
         if (actualDrink <= 0) return;
 
-        setTumblerAmount(prev => prev - actualDrink);
+        const newVolume = tumblerAmount - actualDrink;
+        setTumblerAmount(newVolume);
         setConsumedToday(prev => prev + actualDrink);
+
+        // Persist tumbler volume locally
+        setTumblerVolume(user.id, newVolume);
 
         // Log to database
         logDrink(user.id, actualDrink);
@@ -56,10 +60,13 @@ export default function Dashboard({ user, dailyGoal, onLogout }) {
 
     const handleRefill = () => {
         setTumblerAmount(TUMBLER_CAPACITY);
+        setTumblerVolume(user.id, TUMBLER_CAPACITY);
     };
 
     // NFC Functionality
     const [nfcMessage, setNfcMessage] = useState('');
+    const [nfcLogAmount, setNfcLogAmount] = useState(300);
+
     const startNfcScan = async () => {
         if (!('NDEFReader' in window)) {
             setNfcMessage("Web NFC is not supported on this device/browser.");
@@ -76,9 +83,9 @@ export default function Dashboard({ user, dailyGoal, onLogout }) {
             });
 
             ndef.addEventListener("reading", () => {
-                setNfcMessage("Tag detected! Logging a 300ml drink...");
-                // Automatically log a 300ml drink when tapped
-                handleDrink(300);
+                setNfcMessage(`Tag detected! Logging a ${nfcLogAmount}ml drink...`);
+                // Automatically log a drink when tapped
+                handleDrink(nfcLogAmount);
                 setTimeout(() => setNfcMessage("Drink logged successfully!"), 2000);
             });
         } catch (error) {
@@ -182,16 +189,25 @@ export default function Dashboard({ user, dailyGoal, onLogout }) {
 
                     <div className="nfc-status">
                         <div className="nfc-link-generator">
-                            <label className="tumbler-subtitle">Program this URL to your NFC Tag (Logs 300ml):</label>
+                            <label className="tumbler-subtitle">Customize Scan Amount (ml):</label>
+                            <input
+                                type="number"
+                                value={nfcLogAmount}
+                                onChange={(e) => setNfcLogAmount(Math.max(1, parseInt(e.target.value) || 0))}
+                                className="nfc-link-input"
+                                style={{ marginBottom: '1rem', width: '100px', display: 'block', margin: '0.5rem auto 1.5rem' }}
+                            />
+
+                            <label className="tumbler-subtitle">Program this URL to your NFC Tag:</label>
                             <div className="link-copy-row">
                                 <input
                                     type="text"
                                     readOnly
-                                    value={`${window.location.origin}/?nfcLog=300&userId=${user.id}`}
+                                    value={`${window.location.origin}/?nfcLog=${nfcLogAmount}&userId=${user.id}`}
                                     className="nfc-link-input"
                                 />
                                 <button className="copy-btn" onClick={() => {
-                                    navigator.clipboard.writeText(`${window.location.origin}/?nfcLog=300&userId=${user.id}`);
+                                    navigator.clipboard.writeText(`${window.location.origin}/?nfcLog=${nfcLogAmount}&userId=${user.id}`);
                                     setNfcMessage("Link copied! You can now paste this anywhere.");
                                 }}>
                                     Copy Link

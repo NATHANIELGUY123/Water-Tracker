@@ -1,0 +1,5 @@
+{
+  "appId": "org.hydrosync.app",
+  "appName": "HydroSync",
+  "webDir": "dist"
+}

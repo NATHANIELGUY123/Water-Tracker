@@ -66,6 +66,15 @@ export const setUserGoal = (userId, goal) => {
     }
 };
 
+export const setTumblerVolume = (userId, volume) => {
+    const db = getDB();
+    const userIndex = db.users.findIndex(u => u.id === userId);
+    if (userIndex !== -1) {
+        db.users[userIndex].tumblerVolume = volume;
+        saveDB(db);
+    }
+};
+
 // --- DATA LOGGING ---
 export const logDrink = (userId, amount) => {
     const db = getDB();
